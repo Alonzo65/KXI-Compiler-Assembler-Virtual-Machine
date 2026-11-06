@@ -1,0 +1,19 @@
+﻿  Main.cpp
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\Assembler.h(53,15): warning C4129: '.': unrecognized character escape sequence
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\Assembler.h(153,20): warning C4129: '.': unrecognized character escape sequence
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\Assembler.h(153,20): warning C4129: ',': unrecognized character escape sequence
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\Assembler.h(155,21): warning C4129: '.': unrecognized character escape sequence
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\VM.h(65,12): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\VM.h(39,7): warning C4101: 'readB': unreferenced local variable
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.33.31629\include\utility(378,39): warning C4244: '=': conversion from '_Ty' to '_Ty2', possible loss of data
+          with
+          [
+              _Ty=__int64
+          ]
+          and
+          [
+              _Ty2=int
+          ]
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\VM.h(127): message : see reference to function template instantiation 'std::pair<int,int> &std::pair<int,int>::operator =<int,__int64,0>(std::pair<int,__int64> &&) noexcept' being compiled
+C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\VM.h(127): message : see reference to function template instantiation 'std::pair<int,int> &std::pair<int,int>::operator =<int,__int64,0>(std::pair<int,__int64> &&) noexcept' being compiled
+  AsssemblerVM.vcxproj -> C:\Users\Alonzo\Classes\FinalAssembler-main\FinalAssembler-main\AsssemblerVM\AssemblerVM\x64\Debug\AsssemblerVM.exe

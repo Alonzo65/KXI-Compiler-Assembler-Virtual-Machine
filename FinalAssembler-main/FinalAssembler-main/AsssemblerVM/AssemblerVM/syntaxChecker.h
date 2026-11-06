@@ -1,0 +1,264 @@
+#ifndef SYNTAXCHECKER_H
+#define SYNTAXCHECKER_H
+#include <iostream>
+#include <string>
+#include <initializer_list>
+#include <algorithm>
+#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
+#include <utility>
+#include <stdexcept>
+#include <unordered_map>
+#include <tuple>
+using namespace std;
+
+class syntaxHelper {
+public:
+	tuple<int, int, int> binaryVals;	
+	int instruction = 0;
+	string oper1;	//this will hold the parsed string of operand1 without commas or whitespace 
+	string errMsg;	//used to hold error messages 
+	int op1 = 0;
+	int op2 = 0;
+	syntaxHelper() {}	
+
+	//checkToks will check for syntax and return a tuple of the int values of the opcode, operand1, and operand2
+	tuple<int,int,int>* checkToks(string opcode, string operand1, string operand2, unordered_map<string, int>& symbolTabl) {
+		//check if the opcode given is a valid instruction
+		if (opcodes.count(opcode) == 0 && moveOpcodes.count(opcode) == 0) {
+			//throw an exception/error code saying that this opcode is not a valid instruction
+			errMsg = opcode + " is not a valid instruction.";
+			throw invalid_argument(errMsg);
+		}
+		
+		if (opcodes.count(opcode) > 0) {
+			//set instruction to the int value of the opcode found in the opcodes map
+			instruction = opcodes.at(opcode);
+		}
+
+		//run the specific instructions code to check for proper syntax
+		if (instruction == 1) {	//JMP
+			//remove any white space
+			oper1 = operand1.substr(0, operand1.find(" "));
+			//check to see if oper1(operand1) is a label that lies in the symbolTable
+			if (symbolTabl.count(oper1) > 0) {
+				binaryVals = make_tuple(instruction, symbolTabl.at(oper1), op2);
+			}
+			else {
+				//throw an exception saying that the operand1 provided is not a label 
+				errMsg = "Operand 1 for " + opcode + " is not a label.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (instruction == 2) {	//JMR
+			//remove any white space
+			oper1 = operand1.substr(0, operand1.find(" "));
+			//check to see if oper1(operand1) is a label that lies in the symbolTable
+			if (registers.count(oper1) > 0) {
+				binaryVals = make_tuple(instruction, registers.at(oper1), op2);
+			}
+			else {
+				//throw an exception saying that the operand1 provided is not a label 
+				errMsg = "Operand 1 for " + opcode + " is not a register.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (isIn(instruction, { 3, 4, 5, 6, 8})) {	//BNZ, BGT, BLT, BRZ, LDA
+			//check for comma and white space
+			if (operand1.find(", ") == string::npos) {
+				//throw an exception message saying that there needs to be a comma and white space seperating operand 1 and 2
+				errMsg = "Syntax error: There needs to be a comma and white space seperating operand 1 and operand 2.";
+				throw invalid_argument(errMsg);
+			}
+
+			oper1 = operand1.substr(0, operand1.find(","));
+			//check if oper1 and operand2 are both registers
+			if (registers.count(oper1) > 0 && symbolTabl.count(operand2) > 0) {
+				binaryVals = make_tuple(instruction, registers.at(oper1), symbolTabl.at(operand2));
+			}
+			else {
+				//throw an exception message saying that <instruction> requires that both operands be registers
+				errMsg = opcode + " instruction requires that operand 1 be a register and operand 2 be a label.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (isIn(instruction, { 7, 13, 15, 16, 17, 20 })) {	//MOV, ADD, SUB, MUL, DIV, CMP
+			//check for comma and white space
+			if (operand1.find(", ") == string::npos) {
+				//throw an exception message saying that there needs to be a comma and white space seperating operand 1 and 2
+				errMsg = "Syntax error: There needs to be a comma and white space seperating operand 1 and operand 2.";
+				throw invalid_argument(errMsg);
+			}
+
+			oper1 = operand1.substr(0, operand1.find(","));
+			//check if oper1 and operand2 are both registers
+			if (registers.count(oper1) > 0 && registers.count(operand2) > 0) {
+				binaryVals = make_tuple(instruction, registers.at(oper1), registers.at(operand2));
+			}
+			else {
+				//throw an exception message saying that <instruction> requires that both operands be registers
+				errMsg = opcode + " instruction requires that operand 1 be a register and operand 2 be a register.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (moveOpcodes.count(opcode) > 0) {	//LDR, LDB, STR, STB
+			//check to see if there is a comma and white space seperating operand 1 and operand 2
+			if (operand1.find(", ") == string::npos) {
+				//throw an exception message saying that there needs to be a comma and white space seperating operand 1 and 2
+				errMsg = "Syntax error: There needs to be a comma and white space seperating operand 1 and operand 2.";
+				throw invalid_argument(errMsg);
+			}
+			pair<int, int> opVals(moveOpcodes.at(opcode));
+
+			//set oper1 to operand1, but without any commas
+			oper1 = operand1.substr(0, operand1.find(","));
+
+			//check if oper1 is a register and operand2 is a label
+			if (registers.count(oper1) > 0 && symbolTabl.count(operand2) > 0) {
+				//operand 1 is a register and operand 2 is a label
+				//set binaryVals to a new tuple of the int values of instruction, oper1, and operand2
+				binaryVals = make_tuple(opVals.first, registers.at(oper1), symbolTabl.at(operand2));
+			}
+			else if (registers.count(oper1) > 0 && registers.count(operand2) > 0) {
+				//operand 1 is a register and operand 2 is a register
+				binaryVals = make_tuple(opVals.second, registers.at(oper1), registers.at(operand2));
+			}
+			else {
+				//throw an exception message saying that <instruction> requires that operand1 be a register and operand 2 has to be a label
+				errMsg = opcode + " instruction requires that operand 1 be a register and operand 2 be a label or a register.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (instruction == 35) {	//ALLC possible variants (HEAP INSTRUCTION)
+			//check to see if there is a comma and white space seperating operand 1 and operand 2
+			if (operand1.find(", ") == string::npos) {
+				//throw an exception message saying that there needs to be a comma and white space seperating operand 1 and 2
+				errMsg = "Syntax error: There needs to be a comma and white space seperating operand 1 and operand 2.";
+				throw invalid_argument(errMsg);
+			}
+			
+
+			//set oper1 to operand1, but without any commas
+			oper1 = operand1.substr(0, operand1.find(","));
+
+			//check if oper1 is a register and operand2 is a label
+			if (registers.count(oper1) > 0 && symbolTabl.count(operand2) > 0) {
+				//operand 1 is a register and operand 2 is a label
+				//set binaryVals to a new tuple of the int values of instruction, oper1, and operand2
+				//opcode is still Allc but with a different number
+				binaryVals = make_tuple(36, registers.at(oper1), symbolTabl.at(operand2));
+			}
+			else if (registers.count(oper1) > 0 && registers.count(operand2) > 0) {
+				//operand 1 is a register and operand 2 is a register
+				//opcode is still Allc but with a different number
+				binaryVals = make_tuple(37, registers.at(oper1), registers.at(operand2));
+			}
+			else if (registers.count(oper1) > 0 && operand2 != "") {
+				//operand 1 is a register and operand 2 is a register
+				
+				binaryVals = make_tuple(instruction, registers.at(oper1), stoi(operand2));
+			}
+			else {
+				//throw an exception message saying that <instruction> requires that operand1 be a register and operand 2 has to be a label
+				errMsg = opcode + " instruction requires that operand 1 be a register and operand 2 be a label, a register, or a decimal number.";
+				throw invalid_argument(errMsg);
+			}
+		}
+		else if (instruction == 14) {//ADI AND ANY OTHER IMMEDIATE OPCODES
+			
+				oper1 = operand1.substr(0, operand1.find(","));
+				
+				if (registers.count(oper1) < 1 || symbolTabl.count(operand2) > 0 || registers.count(operand2) > 0 || operand2 == "") {	//create a function to check for register and symbol
+					//the given operand 1 must be a decimal number
+					errMsg = opcode + " instruction requires that operand 1 be a register and operand 2 be a decimal number.";
+					throw invalid_argument(errMsg);
+				}
+				binaryVals = make_tuple(instruction, registers.at(oper1), stoi(operand2));
+		}
+		else{
+			//only thing left is TRP since we already checked earlier if opcode exists in the opcode table
+			//get rid of any white space in operand1
+			oper1 = operand1.substr(0, operand1.find(" "));
+			//check if user provided a label, register, or nothing for operand 1 for the TRP instruction
+			if (registers.count(oper1) > 0 || symbolTabl.count(oper1) > 0 || oper1 == "") {
+				//the given operand 1 must be a decimal number
+				errMsg = opcode + " requires a decimal number for operand 1.";
+				throw invalid_argument(errMsg);
+			}
+			binaryVals = make_tuple(instruction, stoi(oper1), op2);
+			
+		}
+		//set instruction and operands back to 0
+		instruction = 0;
+		op1 = 0;
+		op2 = 0;
+		return &binaryVals;
+}
+
+	
+
+private:
+	//function to check if instruction lies in a set of opcode values given
+	bool isIn(const int& instr, initializer_list<int> checkList) {
+		return(find(begin(checkList), end(checkList), instr) != end(checkList));
+	}
+	//we will check against our map of opcodes to see if the opcode/instruction given exists
+	//if not then throw an error, if it does exist then return its int value
+	unordered_map<string, int> opcodes = {
+		{"JMP", 1},
+		{"JMR", 2},
+		{"BNZ", 3},
+		{"BGT", 4},
+		{"BLT", 5},
+		{"BRZ", 6},
+		{"MOV", 7},
+		{"LDA", 8},
+		{"ADD", 13},
+		{"ADI", 14},
+		{"SUB", 15},
+		{"MUL", 16},
+		{"DIV", 17},
+		{"CMP", 20},
+		{"TRP", 21},
+		{"ALLC", 35} //base case
+	};
+	
+	unordered_map<string, pair<int,int>> moveOpcodes = {
+		
+		{"STR", pair<int,int>(9, 22)},
+		{"LDR", pair<int,int>(10, 23)},
+		{"STB", pair<int,int>(11, 24)},
+		{"LDB", pair<int,int>(12, 25)}
+	};
+	
+
+	unordered_map<string, int> registers = {
+		{"R0", 0},
+		{"R1", 1},
+		{"R2", 2},
+		{"R3", 3},
+		{"R4", 4},
+		{"R5", 5},
+		{"R6", 6},
+		{"R7", 7},
+		{"R8", 8},
+		{"R9", 9},
+		{"R10", 10},
+		{"R11", 11},
+		{"R12", 12},
+		{"R13", 13},
+		{"R14", 14},
+		{"R15", 15},
+		{"PC", 16},
+		{"SL", 17},
+		{"SB", 18},
+		{"SP", 19},
+		{"FP", 20},
+		{"HP", 21},
+		{"HT", 22}
+	};
+};
+
+
+#endif

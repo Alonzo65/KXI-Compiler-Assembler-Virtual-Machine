@@ -1,0 +1,451 @@
+#ifndef VM_H
+#define VM_H
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <deque>
+#include <array>
+#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
+#include <stdexcept>
+#include <stdlib.h>
+#include <utility>
+#include <memory>
+using namespace std;
+//have to copy the whole .bin file into memory maybe read in file size and allocate that much in memory and copy it over? 
+//if im gonna be changing the values in the array i should make a copy of it?? how do i know which ones are .int and which are .byts
+ 
+
+//make pc read only, which instructions do we need to check this for?
+void runVM(string fileN) {
+	int opcode = 0;
+	int operand1 = 0;
+	int operand2 = 0;
+	char* dataSegment;	//pointer to our copied bin file in memory
+	//hold the range of directive values
+	pair<int, int> directiveSegment;
+
+	//varaibles to make my trp4 work like getchar
+	deque<char> buffer;
+	string buffData;
+	char charVal;	//used as a
+	int temp = 0; //used to hold values in the ALLC instructions
+	
+	
+	//R0-R15 general use pc will be R16 so in total 17 elements in register array
+	long long r[23] = {};	//have to make r[16] which is the pc read only
+	//registers can now have SL:17, SB:18, SP:19, FP:20 HP:21 HT:22(we will just use a general use register to act as the PFP)
+	char readB;//used to hold a byte when reading in from cin
+	char byte[3 * sizeof(int)] = {}; //12 bytes, array is initialized to zero for all registers
+
+
+
+	ifstream binF(fileN, ios::in | ios::binary);
+
+	//check if file was open
+	if (!binF.is_open()) {
+		cout << "Error in opening the file" << endl;
+		exit(0);
+	}
+
+	//set limits of min pc and max pc
+	auto minPc = binF.tellg();
+	binF.seekg(0, ios::end);
+	//set the end to SB
+	r[18] = binF.tellg();
+	//set SL to SB -1020
+	//I CHANGED IT TO BE -1023 INSTEAD OF -1024
+	r[17] = r[18] - 16383;
+	//set the HP and HT equal to SL, when we allocate on heap we need to move SL and HP together, keep HT where it is?(right now im moving them using assembly code, 
+	// if we did it in vm it would be a lot of checking)
+	r[21] = r[17];
+	r[22] = r[17];
+	//might not need to do -4 to set maxPc might just be -1
+	int maxPc = r[17] - 1;
+	//auto maxPc = binF.tellg();
+	binF.seekg(0, ios::beg);
+
+	//set the stack pointer and frame pointer
+	//assembly instruction will decrement sp by 4 so we dont need to do that here
+	//do we need to decrement sp by 4 initially? YES IT DOES INITIALLY SB-4
+	r[19] = r[18]-4;
+	r[20] = r[18];
+
+
+	////testing
+	//binF.seekg(r[18], ios::beg);
+	//binF.write(readB, sizeof(int));
+	//cout << byte << endl;
+	//binF.seekg(r[17], ios::beg);
+	//binF.read(byte, sizeof(int));
+	//cout << byte << endl;
+	//binF.seekg(maxPc, ios::beg);
+	//binF.read(byte, sizeof(int));
+	//cout << byte << endl;
+
+	//allocate memory equal to the size of the .bin file
+	char* dataPtr;	//have to set this back to dataSegment after using it to get the address
+	//i dont think we need dataPtr
+	dataSegment = (char*)malloc(r[18]);
+	binF.read(&dataSegment[0], r[18]);
+	dataPtr = dataSegment;
+
+	//dataPtr += 4;
+	//long long testers;
+	//cout << long long(dataPtr) << dataPtr << endl;
+	//testers = long long(dataSegment);
+	//dataPtr = reinterpret_cast<char*>(testers);
+	//cout << testers << endl;
+	//cout << int(* dataPtr);
+	
+	//cout << &dataSegment << endl << dataSegment << endl;
+	//cout << (*dataSegment) << endl;
+	//cout << &dataPtr;
+	//cout << *(dataSegment + 4);
+	//cout << *dataSegment;
+	//testing
+	//cout << int(dataSegment[0]);
+	//dataSegment[0] = 10;
+	//*dataPtr = 10;
+	//cout << int(dataSegment[0]);
+	//cout << *(int*)(dataSegment+1);
+
+	//reset file
+	binF.clear();
+	binF.seekg(0, ios::beg);
+
+	//might place this in a function called fetch
+	binF.read(byte, 3 * sizeof(int)); // 12 bytes read
+	//changed the next line from r[16] = int(byte[0]); to what it is now
+	// this is because if the bin value in hex is ever A in the beginning it will read the value as a negative number
+	//since it interprets it as a twos complment, resulting in a wrong and negative PC number
+	r[16] = unsigned char(int(byte[0]));	//might need to change this to read 4 bytes instead of just one
+	binF.seekg(r[16], ios::beg);	//set pointer of file stream to main instruction
+	
+	//will be used in LDA to check if label is a directive
+	directiveSegment = make_pair(4, r[16]);
+
+
+	while (binF.tellg() != maxPc) {
+		//fetch
+		binF.read(byte, 3 * sizeof(int));
+		//increment
+		r[16] += 12;	//12 bytes we read each time 
+
+		//decode
+		opcode = *(int*)(byte);
+		operand1 = *(int*)(byte + 4);
+		operand2 = *(int*)(byte + 8);
+
+		//execute
+		try
+		{
+			switch (opcode) {
+			case 1:	//jmp allowed to change pc
+				//instruction
+				r[16] = operand1;
+				binF.seekg(r[16], ios::beg);
+				break;
+			case 2:	//JMR
+				r[16] = r[operand1];
+				binF.seekg(r[16], ios::beg);
+				break;
+			case 3:	//BNZ
+				if (r[operand1] != 0) {
+					r[16] = operand2;
+					binF.seekg(r[16], ios::beg);
+				}
+				
+				break;
+			case 4:	//BGT
+				if (r[operand1] > 0) {
+					r[16] = operand2;
+					binF.seekg(r[16], ios::beg);
+				}
+				
+				break;
+			case 5:	//BLT
+				if (r[operand1] < 0) {
+					r[16] = operand2;
+					binF.seekg(r[16], ios::beg);
+				}
+				
+				break;
+			case 6:	//BRZ
+				if (r[operand1] == 0) {
+					r[16] = operand2;
+					binF.seekg(r[16], ios::beg);
+				}
+				
+				break;
+			case 7:	//mov allowed to change pc
+				r[operand1] = r[operand2];
+				//come back and alter in case it changes pc i will need to jump to it i think
+				break;
+			case 8:	//LDA only work if label is to a directive
+				if (directiveSegment.first <= operand2 && operand2 < directiveSegment.second) {
+					//GONNA STORE THE OFFSET TO GET TO THE VALUE because thats the way it has to be done form my stack 
+					r[operand1] = operand2;
+
+					//r[operand1] = long long(dataSegment + operand2);
+				}
+				
+				break;
+			case 9:	//STR //since it gives the offset we can just access it directly in our dataSegment
+				//dataSegment[operand2] = int(r[operand1]);
+				dataPtr = dataSegment;
+				dataPtr += operand2;
+				memcpy(dataPtr, (char*)&r[operand1], sizeof(int));
+				
+				break;
+			case 10:	//ldr
+				//changed this to read in 4 bytes from the label instead of just one like ldb
+				//have to take most upddated values from our datasegment not the file 
+				dataPtr = dataSegment;
+				dataPtr += operand2;
+				
+				//maybe do error checking to see if its trying to access outside of the file
+
+				r[operand1] = *(int*)(dataPtr);
+				//binF.seekg(operand2, ios::beg);
+				//binF.read(byte, sizeof(int));
+				//r[operand1] = *(int*)(byte);
+				//binF.seekg(r[16], ios::beg);
+				break;
+			case 11:	//STB //since it gives the offset we can just access it directly in our dataSegment
+				dataSegment[operand2] = char(r[operand1]);
+
+				break;
+			case 12:	//ldb
+				//have to take most upddated values from our datasegment not the file 
+				dataPtr = dataSegment;
+				dataPtr += operand2;
+
+				r[operand1] = *(dataPtr);
+				//binF.seekg(operand2, ios::beg);
+				//r[operand1] = binF.peek();
+				//binF.seekg(r[16], ios::beg);
+				break;
+			case 13:	//add
+				if (operand1 == 16) {
+					throw invalid_argument("Instruction ADD cannot modify the contents of the PC");
+				}
+				r[operand1] = r[operand1] + r[operand2];
+				break;
+			case 14:	//ADI
+				if (operand1 == 16) {
+					throw invalid_argument("Instruction ADD cannot modify the contents of the PC");
+				}
+				r[operand1] = r[operand1] + operand2;
+				break;
+			case 15:	//sub
+				if (operand1 == 16) {
+					throw invalid_argument("Instruction SUB cannot modify the contents of the PC");
+				}
+				r[operand1] = r[operand1] - r[operand2];
+				break;
+			case 16:	//mul
+				if (operand1 == 16) {
+					throw invalid_argument("Instruction MUL cannot modify the contents of the PC");
+				}
+				r[operand1] = r[operand1] * r[operand2];
+				break;
+			case 17:	//div
+				if (operand1 == 16) {
+					throw invalid_argument("Instruction DIV cannot modify the contents of the PC");
+				}
+				r[operand1] = r[operand1] / r[operand2];
+				break;
+			case 20:	//CMP
+				if (r[operand1] == r[operand2]) {
+					r[operand1] = 0;
+				}
+				else if (r[operand1] > r[operand2]) {
+					r[operand1] = 1;
+				}
+				else {//RD<RS this is the last case so we dont need to check
+					r[operand1] = -1;
+				}
+
+				break;
+			case 21:	//trp check operand 1 for what kind of trap it is
+				switch (operand1) {
+				case 0:
+					exit(0); //if this doesnt work we can use exit()
+					break;
+				case 1:
+					cout << r[3];
+					break;
+				case 2:
+					cin >> r[3];
+					//eats all remaining values
+					//will this cause an issue with the other tests
+					cin.ignore(INT_MAX, '\n');
+					break;
+				case 3:
+					cout << char(r[3]);
+					break;
+				case 4:
+					//will require to take a whole string(while loop of getchar() and store it in a char array) 
+					// but only return the first one of it and move the pointer when trp3 is called
+					// if you are using it as a string we need to use it like the way he said. we could also do a vector and call while cin >> char variable 
+					//cin >> readB;//its gonna do implicit conversion if input is a char reading byte not int 
+					//hold some buffer, read a line of data and also when you send the data as the next get char when you 
+					//reach the end of line character send it as well to the keyboard
+					//this will make it work like getchar 18:30 
+					// 
+					// 
+					//22.11 how getchar works you provide a series of characters hello hit enter when you hit enter it takes that whole string
+					//inluding that \n at the end of the line when you hit enter and sends those characters one at a time to your variable
+					//he has to test our project to work just like getchar 
+					//we do have to provide \n within the container we hold it, because in the code it checks the last spot in the array if it is \n
+
+					//check if buffer is empty
+					if (buffer.empty()) {
+						cin >> buffData;
+						
+						charVal = getchar();//picks up the \n character from our action of pushing the enter key
+						buffData += charVal;
+						//store the characters in the deque
+						for (size_t i = 0; i < buffData.length(); i++)
+						{
+							buffer.push_back(buffData[i]);
+						}
+					}
+
+					//charVal will contain the next character in our buffer container
+					charVal = buffer.front();
+					buffer.pop_front();
+
+					r[3] = int(charVal);
+					//r[3] = int(getchar());
+					break;
+
+				}
+				break;
+			case 22:	//STR
+				dataPtr = dataSegment;
+				dataPtr += r[operand2];
+				//dataPtr = reinterpret_cast<char*>(r[operand2]);
+				//problem it is only storing one char
+				//maybe convert to int first?
+				memcpy(dataPtr,(char*)&r[operand1], sizeof(int));
+				//*dataPtr = int(r[operand1]);
+
+				//only storing one char value
+				//cout << *(reinterpret_cast<int*>(dataPtr));
+				//its working correctly
+				//dataPtr++;
+				//dataPtr++;
+
+				
+				break;
+			case 23:	//LDR
+				dataPtr = dataSegment;
+				dataPtr += r[operand2];
+				//dataPtr = reinterpret_cast<char*>(r[operand2]);
+				//maybe do error checking to see if its trying to access outside of the file
+				
+				r[operand1] = *(int*)(dataPtr);
+				break;
+			case 24:	//STB
+				//dataPtr = reinterpret_cast<char*>(r[operand2]);
+				//reset it back to the begginning which is dataSegment
+				dataPtr = dataSegment;
+				dataPtr += r[operand2];
+				*dataPtr = char(r[operand1]);
+
+				break;
+			case 25:	//LDB
+				//dataPtr = reinterpret_cast<char*>(r[operand2]);
+				dataPtr = dataSegment;
+				dataPtr += r[operand2];
+
+				r[operand1] = *(dataPtr);	//is already a char* so dereferencing it returns a byte of size char
+
+				break;
+			case 35:	//ALLC operand 2 is a decimal number (IMMEDIATE)
+				//store pointer to segment of memory allocated in memory in r[operand1]
+				//we store the offset to get to that memory location in our data segment instead of storing the actual address
+				// need to move stack limit and stack pointer together
+				r[operand1] = r[21]; //store offset to the beginning of the memory allocated into r[operand1]
+
+				//move HP and SL
+				r[21] += operand2;
+				r[17] += operand2;
+
+					
+				
+				break;
+			case 36:	//ALLC operand 2 is a label(we are assuming that we read an int size bytes from the label)
+				
+				r[operand1] = r[21]; //store offset to the beginning of the memory allocated into r[operand1]
+
+				dataPtr = dataSegment;
+				dataPtr += operand2;
+				temp = *(int*)(dataPtr);
+				//move HP and SL
+				r[21] += temp;
+				r[17] += temp;
+
+				break;
+			case 37:	//ALLC operand 2 is a register(we are assuming that we read an int size bytes from the address stored in the register)
+				r[operand1] = r[21]; //store offset to the beginning of the memory allocated into r[operand1]
+
+				dataPtr = dataSegment;
+				dataPtr += r[operand2];
+				temp = *(int*)(dataPtr);
+				//move HP and SL
+				r[21] += temp;
+				r[17] += temp;
+
+				break;
+			default:
+				cout << "Exited incorrectly on pc: " << r[16] << endl;
+				exit(0);
+			}
+		}
+		catch (const invalid_argument& z)
+		{
+			cout << "Error occured at pc: " << r[16] << " Error Message: " << z.what() << endl;
+
+		}
+
+		//check if pc is out of bounds
+		//also check if there is a stack overflow or underflow.
+		if ((r[19] + 4) > r[18]) {
+			cout << "Error: stack underflow detected: SP > SB" << endl;
+			exit(0);
+		}
+		else if(r[19] < r[17]) {
+			cout << "Error: stack overflow detected: SP < SL" << endl;
+			exit(0);
+		}
+		//check for heap overflow or underflow
+		if (r[21] > r[19])	//if heap pointer crosses the stack pointer we have overuse of heap(heap overflow)
+		{
+			cout << "Error: overuse of heap detected(heap overflow): HP > SP" << endl;
+			exit(0);
+		}
+		else if (r[21] < r[22])	//underflow double check to see how we check for this correctly, right now we have if heap pointer is less than heap Top, then we have a heap underflow since we would be in the code segment
+		{
+			cout << "Error: heap underflow detected: HP < HT" << endl;
+			exit(0);
+		}
+		if (r[16] > maxPc) {
+			cout << "Error, pc is out of bounds and in the data segment: pc > maxPc: " << r[16] << endl;
+			exit(0);
+		}
+		else if (r[16] < minPc) {
+			cout << "Error, pc is out of bounds and is outside of the code segment: pc < minPc" << endl;
+			exit(0);
+		}
+
+	}
+
+
+
+}
+
+#endif
