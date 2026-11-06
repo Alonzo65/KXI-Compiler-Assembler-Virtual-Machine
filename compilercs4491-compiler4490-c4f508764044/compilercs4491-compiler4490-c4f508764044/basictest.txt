@@ -1,0 +1,197 @@
+class Functions {
+    // Print out the fibonacci sequence for the number of iterations chosen.
+    // This is a recursive function.
+    private char comma = 'd';
+    public bool fibonacciSequence(int iterations, int count, int pastFib1, int pastFib2, int currentFib, bool nestedIfAndFibPass, char l) {
+        int numberOfFibonacciIterations = iterations;
+        char comma = ',';
+        char space = ' ';
+        
+        if (iterations == 0) {
+            return nestedIfAndFibPass;
+        }
+        if (count < 1)
+            cout << count;
+        else if (count < 2) {
+            pastFib1 = 0;
+            
+        }
+        else {
+            // This is just an obvious check to make sure a simple comparison
+            // doesn't fail.
+            if (false == true) {
+                printFail();
+            }
+            
+        }
+        if (count != (numberOfFibonacciIterations - 1)) {            
+        }
+        else {
+            if (true == true) {
+                if (true == true && false == false) {
+                    // should always reach this point, but pass over
+                    // this if statement. Will fail otherwise.
+                    if (l != 'l') {
+                        printFail();
+                    }
+                    // checking large conditional and nested if/else. Makes sure all fibonacci numbers evaluate properly.
+                    // only works if input one of the previously indicated numbers. 1, 10, 20, 25, 47.
+                    else if ((numberOfFibonacciIterations == 1 && currentFib == 0) || (numberOfFibonacciIterations == 10 && currentFib == 34)
+                    || (numberOfFibonacciIterations == 20 && currentFib == 4181) || (numberOfFibonacciIterations == 25 && currentFib == 46368)
+                    || (numberOfFibonacciIterations == 47 && currentFib == 1836311903)) {
+                        nestedIfAndFibPass = true;
+                    }
+                }
+            }
+        }   
+        count = count + 1;
+        if (count == iterations)
+            return nestedIfAndFibPass;
+        else
+            return fibonacciSequence(iterations, count, pastFib1, pastFib2, currentFib, nestedIfAndFibPass, l);
+    }
+
+    public void printFail() {
+        char endl = '\n';
+        char f = 'f';
+        char l = 'l';
+
+        cout << endl;
+        cout << f;
+        cout << 'a';
+        cout << 'i';
+        cout << l;
+        cout << ':';
+        cout << '(';
+        cout << endl;
+    }
+
+    public int passing(char nl, char C2) {
+         if (okayYeahButForRealPassing(367, nl, C2) == 'p')
+            return 8;
+        else
+            return -1;
+    }
+
+    public char okayYeahButForRealPassing(int check, char nl, char C2) {
+        char space = ' ';
+        char endl = '\n';
+        char s = 's';
+        char u = 'u';
+        char c = 'c';
+        char e = 'e';
+        char f = 'f';
+        char l = 'l';
+        char ex = '!';
+
+        if (check == 367) {
+            cout << nl;
+            cout << C2;
+            cout << space;
+            cout << s;
+            cout << u;
+            cout << c;
+            cout << c;
+            cout << e;
+            cout << s;
+            cout << s;
+            cout << f;
+            cout << u;
+            cout << l;
+            cout << ex;
+            cout << '!';
+            cout << '!';
+            cout << endl;
+            return 'p';
+        }
+        return 'f';
+    }
+
+    public void printPassing(char C2, char nl) {
+         int passed = passing(nl, C2);
+         if (passed != 8)
+            printFail();
+            Functions var;
+            Functions var1 = null;
+           // Functions var2 = new int[4];
+            //Functions[] var3 = new int[4];
+            //Functions var4 = new int();
+            //Functions var5 = new Functions[4];
+            Functions[] var6 = new Functions[4];
+            Functions var7 = new Functions();
+            Functions var8;
+            //var1.comma = 'd';
+            this.comma;
+            newempt var12 = null;
+            var12 = new newempt();
+            var12.dje;
+            var12.dje = 45;
+            
+
+    }
+}
+
+class newempt{
+    public int dje;
+}
+
+void kxi2023 main (){
+    Functions var1 = null;
+    //var1.comma = 'd';
+    bool tr = true;
+    true == true;
+    true != tr;
+    y > y; //check limits for if they are equal make sure im doing the right thing 
+    //tr > tr;
+    y=y=y=y;
+    y+=y;
+    y+=y+=y;
+    y+=y-=y;
+    y*=y*=y;
+    y/=y/=y;
+    
+    //cout << '\'';
+    //cout << '"';
+    //cout << "\"";
+    //cout << "'"; //make sure our assembler can handle this
+    //cout << "\"';:\\";
+    //cout << '\\'; // how should our assembler handle \\
+    //cout << '/';
+    //cout << "///\\\\\\\n";
+    string brfd = "dfds";
+    string br = "derds";
+    br == brfd;
+    "fd"=="sd";
+    //myClass mycl;
+    bool mathWithPrecedence;
+    char endl = '\n';
+    int y = 3;
+    y=i=j=y;
+    int i = 3+4*2+83/3;
+    int j = (i+2)/(i*-2)+(-23)-+2+-12;
+    cout << i;
+    cout << endl;
+    cout << j;
+    cout << endl;
+    if (i == 38) {
+        if (j == -37)
+            j = i * (j * (44 / (40 - 9) + (+5 - -5)));
+        if (j == -15466)
+            mathWithPrecedence = true;
+        cout << j;
+        cout << mathWithPrecedence;
+        cout << endl;
+    }
+    //mycl.funct(y);
+    
+    //cout << mycl.funct(y);
+    //cin >> y;
+    //cout << y;
+    //cout << y = mycl.funct();
+    //y = mycl.funct(y); //we need to keep shifting so that it can detect the right token 
+    //y = mycl.funct(); causes error because assignment will take the id meant for the period expression same for any other operator 
+    //y = 3 + mycl.funct();
+    //cout << y;
+    
+    
+}
